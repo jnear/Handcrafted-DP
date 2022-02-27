@@ -86,14 +86,23 @@ def main(dataset, augment=False, use_scattering=False, size=None,
     else:
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
-    privacy_engine = PrivacyEngine(
-        model,
-        sample_rate=bs / len(train_data),
-        alphas=ORDERS,
+    # privacy_engine = PrivacyEngine(
+    #     model,
+    #     sample_rate=bs / len(train_data),
+    #     alphas=ORDERS,
+    #     noise_multiplier=noise_multiplier,
+    #     max_grad_norm=max_grad_norm,
+    # )
+    # privacy_engine.attach(optimizer)
+    privacy_engine = PrivacyEngine()
+    model, optimizer, train_loader = privacy_engine.make_private(
+        module=model,
+        optimizer=optimizer,
+        data_loader=train_loader,
         noise_multiplier=noise_multiplier,
         max_grad_norm=max_grad_norm,
+        poisson_sampling=False,
     )
-    privacy_engine.attach(optimizer)
 
     best_acc = 0
     flat_count = 0
@@ -105,12 +114,15 @@ def main(dataset, augment=False, use_scattering=False, size=None,
         test_loss, test_acc = test(model, test_loader)
 
         if noise_multiplier > 0:
-            rdp_sgd = get_renyi_divergence(
-                privacy_engine.sample_rate, privacy_engine.noise_multiplier
-            ) * privacy_engine.steps
-            epsilon, _ = get_privacy_spent(rdp_norm + rdp_sgd)
-            epsilon2, _ = get_privacy_spent(rdp_sgd)
-            print(f"ε = {epsilon:.3f} (sgd only: ε = {epsilon2:.3f})")
+            # rdp_sgd = get_renyi_divergence(
+            #     privacy_engine.sample_rate, privacy_engine.noise_multiplier
+            # ) * privacy_engine.steps
+            # epsilon, _ = get_privacy_spent(rdp_norm + rdp_sgd)
+            # epsilon2, _ = get_privacy_spent(rdp_sgd)
+            # print(f"ε = {epsilon:.3f} (sgd only: ε = {epsilon2:.3f})")
+
+            epsilon = privacy_engine.get_epsilon(delta=1e-5)
+            print(f"ε = {epsilon:.3f}")
 
             if max_epsilon is not None and epsilon >= max_epsilon:
                 return
