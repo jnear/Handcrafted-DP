@@ -29,19 +29,13 @@ def train(model, train_loader, optimizer, n_acc_steps=1):
             break
 
         data, target = data.to(device), target.to(device)
+        optimizer.zero_grad()
 
         output = model(data)
 
         loss = F.cross_entropy(output, target)
         loss.backward()
-
-        if ((batch_idx + 1) % n_acc_steps == 0) or ((batch_idx + 1) == len(train_loader)):
-            optimizer.step()
-            optimizer.zero_grad()
-        # else:
-        #     with torch.no_grad():
-        #         # accumulate per-example gradients but don't take a step yet
-        #         optimizer.virtual_step()
+        optimizer.step()
 
         pred = output.max(1, keepdim=True)[1]
         correct += pred.eq(target.view_as(pred)).sum().item()
